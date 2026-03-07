@@ -20,7 +20,7 @@ const corsOptions = {
   methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
 };
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions));
+app.options('/(.*)', cors(corsOptions));
 app.use(express.json({ limit: '5mb' }));
 
 const loginSchema = z.object({
