@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const { config } = require('./config');
 const { z } = require('zod');
 const { authMiddleware, signToken } = require('./auth');
 const { query, withTransaction, pool } = require('./db');
