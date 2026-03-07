@@ -15,7 +15,7 @@ const {
 
 const app = express();
 app.use(cors({
-  origin: config.frontendUrl,
+  origin: config.appEnv === 'production' ? config.frontendUrl : '*',
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 app.use(express.json({ limit: '5mb' }));
