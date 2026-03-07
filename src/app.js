@@ -14,12 +14,11 @@ const {
 } = require('./services/schedulerService');
 
 const app = express();
-const corsOptions = {
-  origin: config.frontendUrl ?? '*',
+app.use(cors({
+  origin: '*',
   allowedHeaders: ['Content-Type', 'Authorization'],
   methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
-};
-app.use(cors(corsOptions));
+}));
 app.use(express.json({ limit: '5mb' }));
 
 const loginSchema = z.object({
