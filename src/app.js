@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const bcrypt = require('bcryptjs');
 const { config } = require('./config');
 const { z } = require('zod');
 const { authMiddleware, signToken } = require('./auth');
@@ -21,9 +22,15 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '5mb' }));
 
-const loginSchema = z.object({
+const registerSchema = z.object({
   email: z.string().email(),
   name: z.string().min(2),
+  password: z.string().min(6),
+});
+
+const loginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(1),
 });
 
 const plantSchema = z.object({
@@ -84,29 +91,40 @@ app.get('/health', async (_req, res) => {
   res.json({ ok: true, dbTime: result.rows[0].now });
 });
 
-app.post('/auth/dev-login', async (req, res) => {
+app.post('/auth/register', async (req, res) => {
   try {
-    const payload = loginSchema.parse(req.body);
-    const upsertSql = `
-      INSERT INTO users (email, name)
-      VALUES ($1, $2)
-      ON CONFLICT (email)
-      DO UPDATE SET name = EXCLUDED.name
-      RETURNING *;
-    `;
-    const { rows } = await query(upsertSql, [payload.email, payload.name]);
-    const user = rows[0];
-    const token = signToken(user);
-    res.json({
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-      },
-    });
+    const { email, name, password } = registerSchema.parse(req.body);
+    const existing = await query('SELECT id FROM users WHERE email = $1', [email]);
+    if (existing.rows.length) {
+      return res.status(409).json({ message: 'El email ya está registrado' });
+    }
+    const passwordHash = await bcrypt.hash(password, 10);
+    const { rows } = await query(
+      'INSERT INTO users (email, name, password_hash) VALUES ($1, $2, $3) RETURNING id, email, name',
+      [email, name, passwordHash],
+    );
+    const token = signToken(rows[0]);
+    return res.status(201).json({ token, user: rows[0] });
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    return res.status(400).json({ message: error.message });
+  }
+});
+
+app.post('/auth/login', async (req, res) => {
+  try {
+    const { email, password } = loginSchema.parse(req.body);
+    const { rows } = await query('SELECT * FROM users WHERE email = $1', [email]);
+    if (!rows.length) {
+      return res.status(401).json({ message: 'Credenciales inválidas' });
+    }
+    const valid = await bcrypt.compare(password, rows[0].password_hash);
+    if (!valid) {
+      return res.status(401).json({ message: 'Credenciales inválidas' });
+    }
+    const token = signToken(rows[0]);
+    return res.json({ token, user: { id: rows[0].id, email: rows[0].email, name: rows[0].name } });
+  } catch (error) {
+    return res.status(400).json({ message: error.message });
   }
 });
 

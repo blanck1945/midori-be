@@ -83,6 +83,7 @@ CREATE TABLE IF NOT EXISTS notifications (
 );
 
 ALTER TABLE plants ADD COLUMN IF NOT EXISTS color_rgb TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT;
 
 CREATE INDEX IF NOT EXISTS idx_plants_user_id ON plants(user_id);
 CREATE INDEX IF NOT EXISTS idx_care_tasks_plant_id ON care_tasks(plant_id);
