@@ -412,9 +412,12 @@ app.get('/tasks/today', async (req, res) => {
     SELECT t.* FROM care_tasks t
     JOIN plants p ON p.id = t.plant_id
     WHERE p.user_id = $1
-      AND t.scheduled_for >= date_trunc('day', NOW())
       AND t.scheduled_for < date_trunc('day', NOW()) + INTERVAL '1 day'
-    ORDER BY t.priority DESC, t.scheduled_for ASC
+      AND (
+        t.status = 'pending'
+        OR t.scheduled_for >= date_trunc('day', NOW())
+      )
+    ORDER BY t.scheduled_for ASC, t.priority DESC
   `;
   const { rows } = await query(sql, [req.user.id]);
   res.json(rows.map(mapTask));
