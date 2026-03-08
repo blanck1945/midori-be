@@ -45,15 +45,19 @@ function parseDataUrl(dataUrl) {
   return { mimeType: match[1], data: match[2] };
 }
 
-async function callGeminiForDiagnosis({ context, note, imageUrl, plant }) {
+const LANGUAGE_NAMES = { es: 'español', en: 'English', pt: 'português' };
+
+async function callGeminiForDiagnosis({ context, note, imageUrl, plant, language = 'es' }) {
+  const langName = LANGUAGE_NAMES[language] ?? 'español';
   const prompt = [
-    'Sos un experto en fitopatología para uso doméstico.',
-    `Planta: ${plant.name}. Especie estimada: ${plant.species_guess}.`,
-    `Ubicación: ${plant.location}. Nivel de luz: ${plant.light_level}.`,
-    `Contexto del usuario: ${context ?? ''}. Nota: ${note ?? ''}.`,
-    'Analizá la imagen y devolvé SOLO un JSON válido sin markdown con los campos:',
+    `You are an expert in domestic plant pathology. Respond ONLY in ${langName}.`,
+    `Plant: ${plant.name}. Estimated species: ${plant.species_guess}.`,
+    `Location: ${plant.location}. Light level: ${plant.light_level}.`,
+    `User context: ${context ?? ''}. Note: ${note ?? ''}.`,
+    'Analyze the image and return ONLY a valid JSON without markdown with fields:',
     'severity (low|medium|high), confidence (0..1), summary (string), detectedIssues (array), recommendations (array).',
-    'Sé específico con acciones concretas de cuidado y recuperación.',
+    `All text fields (summary, detectedIssues, recommendations) MUST be written in ${langName}.`,
+    'Be specific with concrete care and recovery actions.',
   ].join(' ');
 
   const parts = [{ text: prompt }];
@@ -92,7 +96,7 @@ async function generateDiagnosis(input) {
   let rawResult;
   if (config.geminiApiKey) {
     try {
-      rawResult = await callGeminiForDiagnosis(input);
+      rawResult = await callGeminiForDiagnosis(input);  // passes language through input
     } catch (err) {
       console.warn('Gemini falló, usando heurística:', err.message);
       rawResult = heuristicDiagnosis(input);

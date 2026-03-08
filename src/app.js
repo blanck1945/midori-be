@@ -44,6 +44,7 @@ const diagnoseSchema = z.object({
   imageUrl: z.string().min(10), // accepts data URLs, file://, content://, or https://
   note: z.string().optional(),
   context: z.string().min(5),
+  language: z.enum(['es', 'en', 'pt']).optional().default('es'),
 });
 
 function mapPlant(row) {
@@ -292,6 +293,7 @@ app.post('/plants/:plantId/diagnose', async (req, res) => {
         note: payload.note,
         imageUrl: payload.imageUrl, // send original data URL to Gemini
         plant,
+        language: payload.language,
       });
 
       const diagnosisInsert = await client.query(
@@ -331,7 +333,7 @@ app.post('/plants/:plantId/diagnose', async (req, res) => {
         [plant.id, diagnosisInsert.rows[0].id, nextVersion],
       );
 
-      const taskDrafts = await buildCareTasksFromDiagnosis(diagnosisData, plant);
+      const taskDrafts = await buildCareTasksFromDiagnosis(diagnosisData, plant, payload.language);
       const generatedTasks = [];
       for (const task of taskDrafts) {
         const taskInsert = await client.query(

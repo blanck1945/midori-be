@@ -60,11 +60,14 @@ function buildFallbackTasks(diagnosis, plantId) {
   return tasks;
 }
 
-async function callGeminiForCarePlan(diagnosis, plant) {
+const LANGUAGE_NAMES = { es: 'español', en: 'English', pt: 'português' };
+
+async function callGeminiForCarePlan(diagnosis, plant, language = 'es') {
   const now = new Date();
   const nowART = now.toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' });
+  const langName = LANGUAGE_NAMES[language] ?? 'español';
 
-  const prompt = `Sos un experto en cuidado de plantas domésticas. Generá un plan de cuidado personalizado.
+  const prompt = `You are an expert in domestic plant care. Generate a personalized care plan. Respond ONLY in ${langName}. All text fields (title, details) MUST be written in ${langName}.
 
 Planta: ${plant.name}
 Especie: ${plant.species_guess}
@@ -132,10 +135,10 @@ Ordenar por scheduledFor ascendente.`;
   }));
 }
 
-async function buildCareTasksFromDiagnosis(diagnosis, plant) {
+async function buildCareTasksFromDiagnosis(diagnosis, plant, language = 'es') {
   if (config.geminiApiKey) {
     try {
-      return await callGeminiForCarePlan(diagnosis, plant);
+      return await callGeminiForCarePlan(diagnosis, plant, language);
     } catch (err) {
       console.warn('Gemini falló para care plan, usando fallback:', err.message);
     }
